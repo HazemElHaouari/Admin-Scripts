@@ -15,3 +15,4 @@ Simple bash script for downloding youtube videos in batch file.
 
 simple menu driven shell script to to get information about your Linux server / desktop and Do some Users and File operations Quickly.
 
+# We integrated zenity to show dialog boxes for the Admin Scripts
