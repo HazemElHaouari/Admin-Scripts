@@ -1,7 +1,5 @@
 #!/bin/bash
-####################################################################
-# Sathish Arthar (Sathisharthar {at} gmail.com) - Jan 2014
-####################################################################
+
 #simple menu driven shell script to to get information about your Linux server / desktop and Do some Users and File operations Quickly.
 
 
@@ -18,22 +16,23 @@ read -p "$message" readEnterKey
 
 # Purpose - Display a menu on screen
 function show_menu(){
-date
-echo "---------------------------"
-echo " Main Menu"
-echo "---------------------------"
-echo "1. Operating system info"
-echo "2. Hostname and dns info"
-echo "3. Network info"
-echo "4. Who is online"
-echo "5. Last logged in users"
-echo "6. Free and used memory info"
-echo "7. Get my ip address"
-echo "8. My Disk Usage"
-echo "9. Process Usage"
-echo "10. Users Operations"
-echo "11. File Operations"
-echo "12. Exit"
+#date
+action=`zenity --list \
+  --title="Main Menu" \
+  --column="Number" --column="Action" \
+    1 "Operating system info" \
+    2 "Hostname and dns info" \
+    3 "Network info" \
+    4 "Who is online" \
+    5 "Last logged in users" \
+    6 "Free and used memory info" \
+    7 "Get my ip address" \
+    8 "My Disk Usage" \
+    9 "Process Usage" \
+    10 "Users Operations" \
+    11 "File Operations" \
+    12 "Exit"`
+echo "action : " $action
 }
 
 # Purpose - Display header message
@@ -47,45 +46,54 @@ echo "---------------------------------------------------------------"
 
 # Purpose - Get info about your operating system
 function os_info(){
-write_header " System information "
-echo "Operating system : $(uname)"
-[ -x $LSB ] && $LSB -a || echo "$LSB command is not insalled (set \$LSB variable)"
-#pause "Press [Enter] key to continue..."
-pause
+#data=$(write_header " System information ")
+#data=$data$(echo -e "\nOperating system : $(uname)")
+data=$(echo -e "Operating system : $(uname)")
+data=$data$(date)
+data=$data$(echo -e "\n$([ -x $LSB ] && $LSB -a)" || echo "$LSB command is not insalled (set \$LSB variable)")
+echo -n "$data" | zenity --text-info --title "System information" --width 650 --height 400
+#[ -x $LSB ] && $LSB -a || echo "$LSB command is not insalled (set \$LSB variable)"
+show_menu
 }
 
 # Purpose - Get info about host such as dns, IP, and hostname
 function host_info(){
 local dnsips=$(sed -e '/^$/d' /etc/resolv.conf | awk '{if (tolower($1)=="nameserver") print $2}')
-write_header " Hostname and DNS information "
-echo "Hostname : $(hostname -s)"
-echo "DNS domain : $(hostname -d)"
-echo "Fully qualified domain name : $(hostname -f)"
-echo "Network address (IP) : $(hostname -i)"
-echo "DNS name servers (DNS IP) : ${dnsips}"
-pause
+#write_header " Hostname and DNS information "
+zenity --list \
+  --title="Hostname and DNS information" \
+  --column="Number" --column="Action" \
+	"Hostname :" "$(hostname -s)" \
+	"DNS domain :" "$(hostname -d)" \
+	"Fully qualified domain name :" "$(hostname -f)" \
+	"Network address (IP) :" "$(hostname -i)" \
+	"DNS name servers (DNS IP) :" "${dnsips}"
+show_menu
 }
 
 # Purpose - Network inferface and routing info
 function net_info(){
 devices=$(netstat -i | cut -d" " -f1 | egrep -v "^Kernel|Iface|lo")
-write_header " Network information "
-echo "Total network interfaces found : $(wc -w <<<${devices})"
+#write_header " Network information "
 
-echo "*** IP Addresses Information ***"
-ip -4 address show
+data3=$(echo -e "Total network interfaces found : $(wc -w <<<${devices})")
 
-echo "***********************"
-echo "*** Network routing ***"
-echo "***********************"
-netstat -nr
+data3=$data3$(echo -e "\n*** IP Addresses Information ***")
+data3=$data3$(echo -e "\n$(ip -4 address show)")
 
-echo "**************************************"
-echo "*** Interface traffic information ***"
-echo "**************************************"
-netstat -i
+data3=$data3$(echo -e "\n************************")
+data3=$data3$(echo -e "\n*** Network routing ***")
+data3=$data3$(echo -e "\n************************")
+data3=$data3$(echo -e "\n$(netstat -nr)")
 
-pause 
+data3=$data3$(echo -e "\n**************************************")
+data3=$data3$(echo -e "\n*** Interface traffic information ***")
+data3=$data3$(echo -e "\n**************************************")
+data3=$data3$(echo -e "\n$(netstat -i)")
+
+echo -n "$data3" | zenity --text-info --title "Network information" --width 650 --height 400
+
+show_menu 
 }
 
 # Purpose - Display a list of users currently logged on 
@@ -93,48 +101,58 @@ pause
 function user_info(){
 local cmd="$1"
 case "$cmd" in 
-who) write_header " Who is online "; who -H; pause ;;
-last) write_header " List of last logged in users "; last ; pause ;;
+who) title="Who is online"; data4=$(who -H) ;;
+last) title="List of last logged in users"; data4=$(last) ;;
 esac 
+echo -n "$data4" | zenity --text-info --title "$title" --width 650 --height 400
+
+show_menu 
 }
 
 # Purpose - Display used and free memory info
 function mem_info(){
-write_header " Free and used memory "
-free -m
 
-echo "*********************************"
-echo "*** Virtual memory statistics ***"
-echo "*********************************"
-vmstat
-echo "***********************************"
-echo "*** Top 5 memory eating process ***"
-echo "***********************************" 
-ps auxf | sort -nr -k 4 | head -5 
-pause
+data6=$(free -m)
+
+data6=$data6$(echo -e "\n*********************************")
+data6=$data6$(echo -e "\n*** Virtual memory statistics ***")
+data6=$data6$(echo -e "\n*********************************")
+data6=$data6$(echo -e "\n$(vmstat)")
+data6=$data6$(echo -e "\n***********************************")
+data6=$data6$(echo -e "\n*** Top 5 memory eating process ***")
+data6=$data6$(echo -e "\n***********************************")
+data6=$data6$(echo -e "\n$(ps auxf | sort -nr -k 4 | head -5 )")
+echo -n "$data6" | zenity --text-info --title "Free and used memory" --width 650 --height 400
+
+show_menu 
 }
 
 # Purpose - Get Public IP address form your ISP
 function ip_info(){
 cmd='curl -s'
-write_header " Public IP information "
 ipservice=checkip.dyndns.org
 pipecmd=(sed -e 's/.*Current IP Address: //' -e 's/<.*$//') #using brackets to use it as an array and avoid need of scaping
-$cmd "$ipservice" | "${pipecmd[@]}"
-pause
+data7=$($cmd "$ipservice" | "${pipecmd[@]}")
+
+zenity --list \
+  --title="Public IP information" \
+  --column="Action" --column="Value" \
+	"Current IP Address:" "$data7"
+
+show_menu
 }
 
 # purpose - Get Disk Usage Information
 function disk_info() {
 usep=$(echo $output | awk '{ print $1}' | cut -d'%' -f1)
   partition=$(echo $output | awk '{print $2}')
-write_header " Disk Usage Info"
 if [ "$EXCLUDE_LIST" != "" ] ; then
-  df -H | grep -vE "^Filesystem|tmpfs|cdrom|${EXCLUDE_LIST}" | awk '{print $5 " " $6}'
+  data8=$(df -H | grep -vE "^Filesystem|tmpfs|cdrom|${EXCLUDE_LIST}" | awk '{print $5 " " $6}')
 else
-  df -H | grep -vE "^Filesystem|tmpfs|cdrom" | awk '{print $5 " " $6}'
+  data8=$(df -H | grep -vE "^Filesystem|tmpfs|cdrom" | awk '{print $5 " " $6}')
 fi
-pause
+echo -n "$data8" | zenity --text-info --title "Disk Usage Info" --width 650 --height 400
+show_menu 
 }
 #Purpose of Process Usage Information
 
@@ -170,65 +188,56 @@ do
 
 clear
 
-echo ""
-echo ""
-echo "${txtcyn}(please enter the number of your selection below)${txtrst}" | centerwide
-echo ""
-echo "1.  Show all processes" | center
-echo "2.  Kill a process" | center
-echo "3.  Bring up top" | center 
-echo "4.  ${txtpur}Return to Main Menu${txtrst}" | center
-echo "5.  ${txtred}Shut down${txtrst}" | center
-echo ""
+processmenuchoice=`zenity --list \
+  --title="Process Menu" \
+  --text="Please select action to perform" \
+  --column="Number" --column="Action" \
+	1 "Show all processes" \
+	2 "Kill a process" \
+	3 "Return to Main Menu" \
+	4 "Shut down"`
 
-read processmenuchoice
+#read processmenuchoice
 case $processmenuchoice in
 
 1 )
-	clear && echo "" && echo "${txtcyn}(press ENTER or use arrow keys to scroll list, press Q to return to menu)${txtrst}" | centerwide && read
-	ps -ef | less
+	#clear && echo "" && echo "${txtcyn}(press ENTER or use arrow keys to scroll list, press Q to return to menu)${txtrst}" | centerwide && read
+	data91=$(ps -ef | less)
+	echo -n "$data91" | zenity --text-info --title "Show all processes" --width 650 --height 400
 ;;
 
 2 )
-	clear && echo "" && echo "Please enter the PID of the process you would like to kill:" | centerwide
-	read pidtokill
-	kill -2 $pidtokill && echo "${txtgrn}Process terminated successfully.${txtrst}" | center || echo "${txtred}Process failed to terminate. Please check the PID and try again.${txtrst}" | centerwide
-	echo "" && echo "${txtcyn}(press ENTER to continue)${txtrst}" | center && read
+	pidtokill=`zenity --entry \
+	--title="Kill a process" \
+	--text="Please enter the PID of the process you would like to kill:"`
+	
+
+	#clear && echo "" && echo "Please enter the PID of the process you would like to kill:" | centerwide
+	#read pidtokill
+	kill -2 $pidtokill && zenity --info \
+--text="Process terminated successfully." | center || zenity --info \
+--text="Process failed to terminate. Please check the PID and try again."
+	#echo "" && echo "${txtcyn}(press ENTER to continue)${txtrst}" | center && read
 ;;
+
 
 3 )
-	top
-;;
+	show_menu 
+		;;
+
 
 4 )
-	clear && echo "" && echo "Are you sure you want to return to the main menu? ${txtcyn}y/n${txtrst}" | centerwide && echo ""
-	read exitays
-	case $exitays in
-		y | Y )
-			clear && exit
-		;;
-		n | N )
-			clear && echo "" && echo "Okay. Nevermind then." | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-		;;
-		* )
-			clear && echo "" && echo "${txtred}Please make a valid selection.${txtrst}" | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-	esac
-;;
+	
+	shutdownays=`zenity --question \
+	--text="Are you sure you want to shut down?"`
 
-5 )
-	clear && echo "" && echo "Are you sure you want to shut down? ${txtcyn}y/n${txtrst}" | centerwide && echo ""
-	read shutdownays
-	case $shutdownays in
-		y | Y )
-			clear && shutdown -h now
-		;;
-		n | N )
-			clear && echo "" && echo "Okay. Nevermind then." | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-		;;
-		* )
-			clear && echo "" && echo "${txtred}Please make a valid selection." | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-		;;
-	esac
+	#clear && echo "" && echo "Are you sure you want to shut down? ${txtcyn}y/n${txtrst}" | centerwide && echo ""
+	#read shutdownays
+	if [ $shutdownays ] ; then
+		shutdown -h now
+	else
+		show_menu
+	fi
 ;;
 
 * )
@@ -237,7 +246,7 @@ case $processmenuchoice in
 esac
 
 done
-pause
+show_menu
 }
 
 #Purpose - For getting  User operation and infrmations
@@ -274,35 +283,47 @@ while :
 do
 
 clear
+usermenuchoice=`zenity --list \
+  --title="User Operations" \
+  --text="Please select action to perform" \
+  --column="Number" --column="Action" \
+	1 "Create a user" \
+	2 "Change the group for a user"\
+	3 "Create a group"\
+	4 "Delete a user" \
+	5 "Change a password"\
+	6 "Return to Main Menu"\
+	7 "Shut down"`
 
-echo ""
-echo ""
-echo "${txtcyn}(please enter the number of your selection below)${txtrst}" | centerwide
-echo ""
-echo "1.  Create a user" | center
-echo "2.  Change the group for a user" | center
-echo "3.  Create a group" | center
-echo "4.  Delete a user" | center
-echo "5.  Change a password" | center
-echo "6.  ${txtpur}Return to Main Menu${txtrst}" | center
-echo "7.  ${txtred}Shut down${txtrst}" | center
-echo ""
 
-read usermenuchoice
+#read usermenuchoice
 case $usermenuchoice in
 
 1 )
-	clear && echo "" && echo "Please enter the new username below:  ${txtcyn}(NO SPACES OR SPECIAL CHARACTERS!)${txtrst}" | centerwide && echo ""
-	read newusername
-	echo "" && echo "Please enter a group for the new user:  ${txtcyn}(STILL NO SPACES OR SPECIAL CHARACTERS!)${txtrst}" | centerwide && echo ""
-	read newusergroup
-	echo "" && echo "What is the new user's full name?  ${txtcyn}(YOU CAN USE SPACES HERE IF YOU WANT!)${txtrst}" | centerwide && echo ""
-	read newuserfullname
-	echo "" && echo ""
+	usercreate=`zenity --forms \
+    	--title="menu Create a user" \
+    	--text="Create a user"  \
+    	--add-entry="Please enter the new username below:"\
+    	--add-entry="Please enter a group for the new user:"\
+    	--add-entry="What is the new user's full name?"
+    	--separator="|"`
+	#clear && echo "" &&  "Please enter the new username below:  ${txtcyn}(NO SPACES OR SPECIAL CHARACTERS!)${txtrst}" | centerwide && echo ""
+	#read newusername
+	newusername="$usercreate" | cut -d "|" -f1
+	#echo "" && echo "Please enter a group for the new user:  ${txtcyn}(STILL NO SPACES OR SPECIAL CHARACTERS!)${txtrst}" | centerwide && echo ""
+	#read newusergroup
+	newusergroup="$usercreate" | cut -d "|" -f2 | md5sum
+	#echo "" && echo "What is the new user's full name?  ${txtcyn}(YOU CAN USE SPACES HERE IF YOU WANT!)${txtrst}" | centerwide && echo ""
+	#read newuserfullname
+	newuserfullname="$usercreate" | cut -d "|" -f3 |md5sum
+	#echo "" && echo ""
 	groupadd $newusergroup
-	useradd -g $newusergroup -c "$newuserfullname" $newusername && echo "${txtgrn}New user $newusername created successfully.${txtrst}" | center || echo "${txtred}Could not create new user.${txtrst}" | center
-	echo "" && echo "${txtcyn}(press ENTER to continue)${txtrst}" | center
-	read
+	useradd -g $newusergroup -c "$newuserfullname" $newusername && zenity --info \
+--text="New user $newusername created successfully." || zenity --info \
+--text="Could not create new user."
+	#"${txtgrn}New user $newusername created successfully.${txtrst}" | center || echo "${txtred}Could not create new user.${txtrst}" | center
+	#echo "" && echo "${txtcyn}(press ENTER to continue)${txtrst}" | center
+	#read
 ;;
 
 2 )
@@ -318,12 +339,17 @@ case $usermenuchoice in
 ;;
 
 3 )
-	clear && echo "" && echo "Please enter a name for the new group below:  ${txtcyn}(NO SPACES OR SPECIAL CHARACTERS!)${txtrst}" | centerwide && echo ""
-	read newgroup
+	clear && echo "" && newgroup=`zenity --entry \
+	--title="Create a Group" \
+	--text="Please enter a name for the new group below:"`
+	#echo "Please enter a name for the new group below:  ${txtcyn}(NO SPACES OR SPECIAL CHARACTERS!)${txtrst}" | centerwide && echo ""
+	#read newgroup
 	echo "" && echo ""
-	groupadd $newgroup && echo "${txtgrn}Group $newgroup created successfully.${txtrst}" | center || echo "${txtred}Failed to create group. Please check if group already exists.${txtrst}" | centerwide
-	echo "" && echo "${txtcyn}(press ENTER to continue)${txtrst}" | center
-	read
+	groupadd $newgroup && zenity --info\
+	--text="Group $newgroup created successfully." || zenity --info\
+	--text="Failed to create group. Please check if group already exists."
+	#echo "" && echo "${txtcyn}(press ENTER to continue)${txtrst}" | center
+	#read
 ;;
 
 4 )
@@ -357,36 +383,22 @@ case $usermenuchoice in
 ;;
 
 6 )
-	clear && echo "" && echo "Are you sure you want to return to the main menu? ${txtcyn}y/n${txtrst}" | centerwide && echo ""
-	read exitays
-	case $exitays in
-		y | Y )
-			clear && exit
-		;;
-		n | N )
-			clear && echo "" && echo "Okay. Nevermind then." | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-		;;
-		* )
-			clear && echo "" && echo "${txtred}Please make a valid selection.${txtrst}" | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-		;;
-	esac
+	show_menu
 ;;
 
 7 )
-	clear && echo "" && echo "Are you sure you want to shut down? ${txtcyn}y/n${txtrst}" | centerwide && echo ""
-	read shutdownays
-	case $shutdownays in
-		y | Y )
-			clear && shutdown -h now
-		;;
-		n | N )
-			clear && echo "" && echo "Okay. Nevermind then." | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-		;;
-		* )
-			clear && echo "" && echo "${txtred}Please make a valid selection.${txtrst}" | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
-		;;
-	esac
+	shutdownays=`zenity --question \
+	--text="Are you sure you want to shut down?"`
+
+	#clear && echo "" && echo "Are you sure you want to shut down? ${txtcyn}y/n${txtrst}" | centerwide && echo ""
+	#read shutdownays
+	if [ $shutdownays ] ; then
+		shutdown -h now
+	else
+		show_menu
+	fi
 ;;
+		
 
 * )
 	clear && echo "" && echo "${txtred}Please make a valid selection.${txtrst}" | center && echo "" && echo "${txtcyn}(Press ENTER to continue.)${txtrst}" | center && read
@@ -667,7 +679,8 @@ pause
 # Purpose - Get input via the keyboard and make a decision using case..esac 
 function read_input(){
 local c
-read -p "Enter your choice [ 1 -12 ] " c
+#read -p "Enter your choice [ 1 -12 ] " c
+c=$action
 case $c in
 1) os_info ;;
 2) host_info ;;
